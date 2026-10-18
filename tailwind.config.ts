@@ -10,14 +10,53 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        background: "var(--background)",
-        foreground: "var(--foreground)",
+        background: "#0C0D0E",
         surface: {
-          DEFAULT: "#111722",
-          card: "#161E2E",
-          hover: "#1D263B",
-          border: "#232D42",
+          DEFAULT: "#131417",
+          subtle: "#181A1E",
+          hover: "#1D1F24",
+          border: "#23262D",
+          borderSubtle: "rgba(255, 255, 255, 0.07)",
         },
+        text: {
+          primary: "#F4F4F6",
+          secondary: "#8E929B",
+          muted: "#5C606A",
+        },
+        brand: {
+          DEFAULT: "#10B981",
+          hover: "#059669",
+          muted: "rgba(16, 185, 129, 0.12)",
+        },
+        income: {
+          DEFAULT: "#10B981",
+          text: "#34D399",
+          subtle: "rgba(16, 185, 129, 0.1)",
+        },
+        expense: {
+          DEFAULT: "#E11D48",
+          text: "#FB7185",
+          subtle: "rgba(225, 29, 72, 0.1)",
+        },
+      },
+      fontFamily: {
+        sans: [
+          "-apple-system",
+          "BlinkMacSystemFont",
+          '"Segoe UI"',
+          "Roboto",
+          '"Helvetica Neue"',
+          "Arial",
+          "sans-serif",
+        ],
+        mono: [
+          'ui-monospace',
+          'SFMono-Regular',
+          'Menlo',
+          'Monaco',
+          'Consolas',
+          'monospace'
+        ]
       },
     },
   },

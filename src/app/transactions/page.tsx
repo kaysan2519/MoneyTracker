@@ -9,7 +9,7 @@ import DeleteConfirmModal from '@/components/DeleteConfirmModal';
 import DbStatusBanner from '@/components/DbStatusBanner';
 import { Transaction, Category } from '@/types';
 import { formatRupiah } from '@/lib/utils';
-import { Filter, ChevronLeft, ChevronRight, Download, Calendar } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Download, Plus } from 'lucide-react';
 
 export default function TransactionsPage() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -22,7 +22,7 @@ export default function TransactionsPage() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  // Filters & Pagination State
+  // Filters State
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('all');
   const [categoryFilter, setCategoryFilter] = useState('all');
@@ -38,7 +38,6 @@ export default function TransactionsPage() {
   const [deletingTx, setDeletingTx] = useState<Transaction | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  // Check Database Status
   const checkDbHealth = useCallback(async () => {
     try {
       const res = await fetch('/api/health');
@@ -49,11 +48,10 @@ export default function TransactionsPage() {
       }
     } catch {
       setDbConnected(false);
-      setDbErrorMessage('Gagal menghubungi endpoint health check.');
+      setDbErrorMessage('Gagal menghubungi endpoint status database.');
     }
   }, []);
 
-  // Fetch Categories
   const fetchCategories = useCallback(async () => {
     try {
       const res = await fetch('/api/categories');
@@ -66,7 +64,6 @@ export default function TransactionsPage() {
     }
   }, []);
 
-  // Fetch Transactions with queries
   const fetchTransactions = useCallback(async () => {
     setLoading(true);
     try {
@@ -138,13 +135,12 @@ export default function TransactionsPage() {
         alert(data.message || 'Gagal menghapus transaksi.');
       }
     } catch {
-      alert('Terjadi kesalahan sistem saat menghapus transaksi.');
+      alert('Terjadi kesalahan saat menghapus transaksi.');
     } finally {
       setIsDeleting(false);
     }
   };
 
-  // Export to CSV
   const handleExportCSV = () => {
     if (transactions.length === 0) {
       alert('Tidak ada transaksi untuk diekspor.');
@@ -166,7 +162,7 @@ export default function TransactionsPage() {
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement('a');
     link.setAttribute('href', encodedUri);
-    link.setAttribute('download', `money_tracker_transactions_${new Date().toISOString().split('T')[0]}.csv`);
+    link.setAttribute('download', `transaksi_${new Date().toISOString().split('T')[0]}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -175,17 +171,17 @@ export default function TransactionsPage() {
   const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
 
   return (
-    <div className="min-h-screen bg-[#090d16] text-slate-100 flex">
+    <div className="min-h-screen bg-[#0C0D0E] text-[#F4F4F6] flex">
       <Sidebar
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
         dbConnected={dbConnected}
       />
 
-      <div className="flex-1 flex flex-col min-w-0 lg:pl-64">
+      <div className="flex-1 flex flex-col min-w-0 lg:pl-60">
         <Header
-          title="Daftar Transaksi"
-          subtitle="Kelola, cari, dan tinjau seluruh riwayat transaksi finansial"
+          title="Transaksi"
+          subtitle="Riwayat seluruh catatan transaksi keuangan"
           onOpenSidebar={() => setSidebarOpen(true)}
           onOpenAddTransaction={handleOpenAdd}
           onRefresh={handleRefresh}
@@ -193,98 +189,95 @@ export default function TransactionsPage() {
           dbConnected={dbConnected}
         />
 
-        <main className="flex-1 p-4 sm:p-8 max-w-7xl mx-auto w-full space-y-6">
+        <main className="flex-1 p-4 sm:p-8 max-w-6xl mx-auto w-full space-y-4">
           <DbStatusBanner
             dbConnected={dbConnected}
             errorMessage={dbErrorMessage}
           />
 
-          {/* Filter Bar & Actions Card */}
-          <div className="p-4 sm:p-5 rounded-2xl bg-[#111726] border border-[#1e293b] space-y-4">
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-              <div className="flex items-center space-x-2">
-                <span className="text-sm font-semibold text-slate-200">
-                  Total Ditemukan:
-                </span>
-                <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                  {totalCount} Transaksi
-                </span>
-              </div>
-
-              <div className="flex items-center space-x-3">
-                <button
-                  onClick={handleExportCSV}
-                  className="inline-flex items-center px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold transition-colors"
-                >
-                  <Download className="w-3.5 h-3.5 mr-1.5" />
-                  Ekspor CSV
-                </button>
-              </div>
+          {/* Subheader Toolbar */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pb-1">
+            <div className="flex items-center space-x-2">
+              <span className="text-xs text-[#8E929B]">
+                Total ditemukan:
+              </span>
+              <span className="text-xs font-semibold text-[#F4F4F6] tabular-nums">
+                {totalCount} transaksi
+              </span>
             </div>
 
-            {/* Additional Date Range & Sorting */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-3 border-t border-[#1e293b]/70">
-              {/* Tanggal Mulai */}
-              <div>
-                <label className="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1">
-                  Dari Tanggal
-                </label>
-                <div className="relative">
-                  <Calendar className="absolute left-3 top-2.5 w-3.5 h-3.5 text-slate-500 pointer-events-none" />
-                  <input
-                    type="date"
-                    value={startDate}
-                    onChange={(e) => {
-                      setStartDate(e.target.value);
-                      setPage(1);
-                    }}
-                    className="w-full pl-9 pr-3 py-1.5 rounded-xl bg-[#090d16] border border-[#1e293b] text-white text-xs focus:outline-none focus:border-emerald-500"
-                  />
-                </div>
-              </div>
-
-              {/* Tanggal Selesai */}
-              <div>
-                <label className="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1">
-                  Sampai Tanggal
-                </label>
-                <div className="relative">
-                  <Calendar className="absolute left-3 top-2.5 w-3.5 h-3.5 text-slate-500 pointer-events-none" />
-                  <input
-                    type="date"
-                    value={endDate}
-                    onChange={(e) => {
-                      setEndDate(e.target.value);
-                      setPage(1);
-                    }}
-                    className="w-full pl-9 pr-3 py-1.5 rounded-xl bg-[#090d16] border border-[#1e293b] text-white text-xs focus:outline-none focus:border-emerald-500"
-                  />
-                </div>
-              </div>
-
-              {/* Urutan (Sorting) */}
-              <div>
-                <label className="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1">
-                  Urutkan Berdasarkan
-                </label>
-                <select
-                  value={sort}
-                  onChange={(e) => {
-                    setSort(e.target.value);
-                    setPage(1);
-                  }}
-                  className="w-full px-3 py-1.5 rounded-xl bg-[#090d16] border border-[#1e293b] text-white text-xs focus:outline-none focus:border-emerald-500"
-                >
-                  <option value="date_desc">Tanggal Terbaru</option>
-                  <option value="date_asc">Tanggal Terlama</option>
-                  <option value="amount_desc">Nominal Terbesar</option>
-                  <option value="amount_asc">Nominal Terkecil</option>
-                </select>
-              </div>
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={handleExportCSV}
+                className="inline-flex items-center px-2.5 py-1.5 rounded-md text-xs font-medium text-[#8E929B] hover:text-[#F4F4F6] hover:bg-[#181A1E] transition-colors"
+                title="Unduh format CSV"
+              >
+                <Download className="w-3.5 h-3.5 mr-1" />
+                Ekspor CSV
+              </button>
+              <button
+                onClick={handleOpenAdd}
+                className="inline-flex items-center px-3 py-1.5 rounded-md bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-medium transition-colors"
+              >
+                <Plus className="w-3.5 h-3.5 mr-1" />
+                Tambah Transaksi
+              </button>
             </div>
           </div>
 
-          {/* Main Transaction Table */}
+          {/* Filter Bar (Date range & Sort) */}
+          <div className="p-3 rounded-lg bg-[#121316] border border-[#1C1E23] grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+            <div>
+              <label className="block text-[11px] font-medium text-[#8E929B] mb-1">
+                Dari Tanggal
+              </label>
+              <input
+                type="date"
+                value={startDate}
+                onChange={(e) => {
+                  setStartDate(e.target.value);
+                  setPage(1);
+                }}
+                className="w-full px-2.5 py-1.5 rounded-md bg-[#0C0D0E] border border-[#23262D] text-xs text-[#F4F4F6] focus:border-[#3E424D] transition-colors"
+              />
+            </div>
+
+            <div>
+              <label className="block text-[11px] font-medium text-[#8E929B] mb-1">
+                Sampai Tanggal
+              </label>
+              <input
+                type="date"
+                value={endDate}
+                onChange={(e) => {
+                  setEndDate(e.target.value);
+                  setPage(1);
+                }}
+                className="w-full px-2.5 py-1.5 rounded-md bg-[#0C0D0E] border border-[#23262D] text-xs text-[#F4F4F6] focus:border-[#3E424D] transition-colors"
+              />
+            </div>
+
+            <div>
+              <label className="block text-[11px] font-medium text-[#8E929B] mb-1">
+                Urutkan
+              </label>
+              <select
+                value={sort}
+                onChange={(e) => {
+                  setSort(e.target.value);
+                  setPage(1);
+                }}
+                className="w-full px-2.5 py-1.5 rounded-md bg-[#0C0D0E] border border-[#23262D] text-xs text-[#F4F4F6] focus:border-[#3E424D] transition-colors cursor-pointer"
+              >
+                <option value="date_desc">Tanggal Terbaru</option>
+                <option value="date_asc">Tanggal Terlama</option>
+                <option value="amount_desc">Nominal Terbesar</option>
+                <option value="amount_asc">Nominal Terkecil</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Table */}
           <TransactionTable
             transactions={transactions}
             categories={categories}
@@ -309,29 +302,29 @@ export default function TransactionsPage() {
             }}
           />
 
-          {/* Pagination Bar */}
+          {/* Pagination */}
           {totalPages > 1 && (
-            <div className="flex items-center justify-between p-4 rounded-2xl bg-[#111726] border border-[#1e293b]">
-              <span className="text-xs text-slate-400">
+            <div className="flex items-center justify-between py-2 text-xs text-[#8E929B]">
+              <span>
                 Halaman {page} dari {totalPages}
               </span>
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center space-x-1">
                 <button
                   onClick={() => setPage((p) => Math.max(p - 1, 1))}
                   disabled={page === 1}
-                  className="p-2 rounded-xl bg-[#090d16] border border-[#1e293b] text-slate-300 hover:text-white disabled:opacity-40 transition-colors"
-                  aria-label="Halaman Sebelumnya"
+                  className="p-1.5 rounded-md hover:bg-[#181A1E] text-[#8E929B] hover:text-[#F4F4F6] disabled:opacity-30 transition-colors"
+                  aria-label="Halaman sebelumnya"
                 >
                   <ChevronLeft className="w-4 h-4" />
                 </button>
-                <span className="px-3 py-1 text-xs font-semibold text-emerald-400 bg-emerald-500/10 rounded-lg">
+                <span className="px-2 font-medium text-[#F4F4F6]">
                   {page}
                 </span>
                 <button
                   onClick={() => setPage((p) => Math.min(p + 1, totalPages))}
                   disabled={page === totalPages}
-                  className="p-2 rounded-xl bg-[#090d16] border border-[#1e293b] text-slate-300 hover:text-white disabled:opacity-40 transition-colors"
-                  aria-label="Halaman Selanjutnya"
+                  className="p-1.5 rounded-md hover:bg-[#181A1E] text-[#8E929B] hover:text-[#F4F4F6] disabled:opacity-30 transition-colors"
+                  aria-label="Halaman berikutnya"
                 >
                   <ChevronRight className="w-4 h-4" />
                 </button>
@@ -341,7 +334,6 @@ export default function TransactionsPage() {
         </main>
       </div>
 
-      {/* Transaction Modal */}
       <TransactionModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
@@ -350,11 +342,10 @@ export default function TransactionsPage() {
         categories={categories}
       />
 
-      {/* Delete Modal */}
       <DeleteConfirmModal
         isOpen={Boolean(deletingTx)}
         title="Hapus Transaksi"
-        message="Apakah Anda yakin ingin menghapus transaksi ini? Data akan dihapus secara permanen dari database Aiven."
+        message="Data transaksi akan dihapus secara permanen dari database."
         itemName={deletingTx ? `${deletingTx.title} (${deletingTx.type === 'income' ? '+' : '-'} ${formatRupiah(deletingTx.amount)})` : ''}
         onClose={() => setDeletingTx(null)}
         onConfirm={handleDeleteConfirm}

@@ -6,16 +6,8 @@ import Header from '@/components/Header';
 import CategoryModal from '@/components/CategoryModal';
 import DeleteConfirmModal from '@/components/DeleteConfirmModal';
 import DbStatusBanner from '@/components/DbStatusBanner';
-import { Category, TransactionType } from '@/types';
-import { 
-  Tags, 
-  Plus, 
-  Pencil, 
-  Trash2, 
-  ArrowDownLeft, 
-  ArrowUpRight,
-  FolderTree
-} from 'lucide-react';
+import { Category } from '@/types';
+import { Plus, Pencil, Trash2 } from 'lucide-react';
 
 export default function CategoriesPage() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -33,7 +25,6 @@ export default function CategoriesPage() {
   const [deletingCategory, setDeletingCategory] = useState<Category | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  // Check Database Status
   const checkDbHealth = useCallback(async () => {
     try {
       const res = await fetch('/api/health');
@@ -44,11 +35,10 @@ export default function CategoriesPage() {
       }
     } catch {
       setDbConnected(false);
-      setDbErrorMessage('Gagal menghubungi endpoint health check.');
+      setDbErrorMessage('Gagal menghubungi endpoint status database.');
     }
   }, []);
 
-  // Fetch Categories
   const fetchCategories = useCallback(async () => {
     try {
       const res = await fetch('/api/categories');
@@ -99,7 +89,7 @@ export default function CategoriesPage() {
         setDeletingCategory(null);
         await fetchCategories();
       } else {
-        alert(data.message || 'Gagal menghapus kategori.');
+        alert(data.message || 'Kategori ini tidak dapat dihapus karena masih digunakan oleh transaksi.');
       }
     } catch {
       alert('Terjadi kesalahan saat menghapus kategori.');
@@ -113,164 +103,158 @@ export default function CategoriesPage() {
     return cat.type === activeTab;
   });
 
-  const incomeCategories = categories.filter((c) => c.type === 'income');
-  const expenseCategories = categories.filter((c) => c.type === 'expense');
-
   return (
-    <div className="min-h-screen bg-[#090d16] text-slate-100 flex">
+    <div className="min-h-screen bg-[#0C0D0E] text-[#F4F4F6] flex">
       <Sidebar
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
         dbConnected={dbConnected}
       />
 
-      <div className="flex-1 flex flex-col min-w-0 lg:pl-64">
+      <div className="flex-1 flex flex-col min-w-0 lg:pl-60">
         <Header
-          title="Manajemen Kategori"
-          subtitle="Atur kategori pemasukan dan pengeluaran transaksi Anda"
+          title="Kategori"
+          subtitle="Daftar kategori untuk mengelompokkan arus kas"
           onOpenSidebar={() => setSidebarOpen(true)}
           onRefresh={handleRefresh}
           isRefreshing={refreshing}
           dbConnected={dbConnected}
         />
 
-        <main className="flex-1 p-4 sm:p-8 max-w-7xl mx-auto w-full space-y-6">
+        <main className="flex-1 p-4 sm:p-8 max-w-5xl mx-auto w-full space-y-4">
           <DbStatusBanner
             dbConnected={dbConnected}
             errorMessage={dbErrorMessage}
           />
 
-          {/* Action Bar & Tabs */}
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 p-4 rounded-2xl bg-[#111726] border border-[#1e293b]">
-            <div className="flex items-center space-x-1.5 p-1 rounded-xl bg-[#090d16] border border-[#1e293b] self-start">
+          {/* Action & Filter Toolbar */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+            {/* Segmented Filter */}
+            <div className="flex items-center space-x-1 p-0.5 rounded-md bg-[#121316] border border-[#1C1E23] self-start">
               <button
                 onClick={() => setActiveTab('all')}
-                className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                className={`px-3 py-1 rounded text-xs font-medium transition-colors ${
                   activeTab === 'all'
-                    ? 'bg-slate-800 text-white shadow-sm'
-                    : 'text-slate-400 hover:text-slate-200'
+                    ? 'bg-[#1E2026] text-[#F4F4F6]'
+                    : 'text-[#8E929B] hover:text-[#D1D3D8]'
                 }`}
               >
                 Semua ({categories.length})
               </button>
               <button
                 onClick={() => setActiveTab('expense')}
-                className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                className={`px-3 py-1 rounded text-xs font-medium transition-colors ${
                   activeTab === 'expense'
-                    ? 'bg-rose-500/20 text-rose-400 border border-rose-500/30 shadow-sm'
-                    : 'text-slate-400 hover:text-slate-200'
+                    ? 'bg-[#1E2026] text-[#F4F4F6]'
+                    : 'text-[#8E929B] hover:text-[#D1D3D8]'
                 }`}
               >
-                Pengeluaran ({expenseCategories.length})
+                Pengeluaran ({categories.filter((c) => c.type === 'expense').length})
               </button>
               <button
                 onClick={() => setActiveTab('income')}
-                className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                className={`px-3 py-1 rounded text-xs font-medium transition-colors ${
                   activeTab === 'income'
-                    ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 shadow-sm'
-                    : 'text-slate-400 hover:text-slate-200'
+                    ? 'bg-[#1E2026] text-[#F4F4F6]'
+                    : 'text-[#8E929B] hover:text-[#D1D3D8]'
                 }`}
               >
-                Pemasukan ({incomeCategories.length})
+                Pemasukan ({categories.filter((c) => c.type === 'income').length})
               </button>
             </div>
 
             <button
               onClick={handleOpenAdd}
-              className="inline-flex items-center justify-center px-4 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-white text-xs font-semibold shadow-lg shadow-emerald-500/20 transition-all active:scale-95"
+              className="inline-flex items-center px-3 py-1.5 rounded-md bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-medium transition-colors self-start sm:self-auto"
             >
-              <Plus className="w-4 h-4 mr-1.5" />
+              <Plus className="w-3.5 h-3.5 mr-1" />
               Tambah Kategori
             </button>
           </div>
 
-          {/* Grid Kategori */}
-          {loading ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {[1, 2, 3, 4, 5, 6].map((i) => (
-                <div
-                  key={i}
-                  className="p-4 rounded-2xl bg-[#111726] border border-[#1e293b] animate-pulse h-24"
-                />
-              ))}
-            </div>
-          ) : filteredCategories.length === 0 ? (
-            <div className="p-12 text-center rounded-2xl bg-[#111726] border border-[#1e293b]">
-              <div className="inline-flex p-3 rounded-2xl bg-slate-800/50 text-slate-400 mb-3">
-                <FolderTree className="w-8 h-8" />
-              </div>
-              <h4 className="text-base font-semibold text-slate-200">
-                Belum Ada Kategori
-              </h4>
-              <p className="text-xs text-slate-400 mt-1 max-w-sm mx-auto">
-                Tambahkan kategori pertama Anda untuk mengelompokkan catatan transaksi finansial.
-              </p>
-              <button
-                onClick={handleOpenAdd}
-                className="mt-4 inline-flex items-center px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-white text-xs font-semibold"
-              >
-                <Plus className="w-3.5 h-3.5 mr-1.5" />
-                Tambah Kategori Sekarang
-              </button>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {filteredCategories.map((cat) => {
-                const isIncome = cat.type === 'income';
-                return (
-                  <div
-                    key={cat.id}
-                    className="p-5 rounded-2xl bg-[#111726] border border-[#1e293b] hover:border-slate-700 transition-all duration-200 flex items-center justify-between group shadow-sm"
-                  >
-                    <div className="flex items-center space-x-3.5 min-w-0">
-                      <div
-                        className={`p-2.5 rounded-xl flex-shrink-0 ${
-                          isIncome
-                            ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                            : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
-                        }`}
+          {/* Clean Categories Table */}
+          <div className="rounded-lg bg-[#121316] border border-[#1C1E23] overflow-hidden">
+            <table className="w-full text-left border-collapse text-xs">
+              <thead>
+                <tr className="border-b border-[#1C1E23] text-[11px] font-medium text-[#5C606A] uppercase tracking-wider">
+                  <th className="py-3 px-4">Nama Kategori</th>
+                  <th className="py-3 px-4 w-40">Jenis</th>
+                  <th className="py-3 px-4 text-right w-24">Aksi</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[#1C1E23]">
+                {loading ? (
+                  [1, 2, 3, 4].map((i) => (
+                    <tr key={i} className="animate-pulse">
+                      <td className="py-3.5 px-4">
+                        <div className="h-3.5 w-32 bg-[#1C1E23] rounded" />
+                      </td>
+                      <td className="py-3.5 px-4">
+                        <div className="h-3 w-16 bg-[#1C1E23] rounded" />
+                      </td>
+                      <td className="py-3.5 px-4 text-right">
+                        <div className="h-3 w-10 bg-[#1C1E23] rounded ml-auto" />
+                      </td>
+                    </tr>
+                  ))
+                ) : filteredCategories.length === 0 ? (
+                  <tr>
+                    <td colSpan={3} className="py-12 text-center text-[#8E929B]">
+                      <p className="text-sm font-medium text-[#D1D3D8]">
+                        Belum ada kategori
+                      </p>
+                      <p className="text-xs text-[#5C606A] mt-1">
+                        Tambahkan kategori baru untuk mengelompokkan transaksi Anda.
+                      </p>
+                    </td>
+                  </tr>
+                ) : (
+                  filteredCategories.map((cat) => {
+                    const isIncome = cat.type === 'income';
+                    return (
+                      <tr
+                        key={cat.id}
+                        className="hover:bg-[#16181C] transition-colors group"
                       >
-                        {isIncome ? (
-                          <ArrowDownLeft className="w-4 h-4" />
-                        ) : (
-                          <ArrowUpRight className="w-4 h-4" />
-                        )}
-                      </div>
-                      <div className="min-w-0">
-                        <h4 className="text-sm font-bold text-white truncate">
+                        <td className="py-3 px-4 font-medium text-[#F4F4F6]">
                           {cat.name}
-                        </h4>
-                        <span
-                          className={`inline-block text-[10px] font-semibold tracking-wider uppercase mt-0.5 ${
-                            isIncome ? 'text-emerald-400' : 'text-rose-400'
-                          }`}
-                        >
-                          {isIncome ? 'Pemasukan' : 'Pengeluaran'}
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center space-x-1 opacity-80 group-hover:opacity-100">
-                      <button
-                        onClick={() => handleOpenEdit(cat)}
-                        className="p-2 rounded-lg text-slate-400 hover:text-emerald-400 hover:bg-emerald-500/10 transition-colors"
-                        title="Edit Kategori"
-                      >
-                        <Pencil className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => setDeletingCategory(cat)}
-                        className="p-2 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
-                        title="Hapus Kategori"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
+                        </td>
+                        <td className="py-3 px-4">
+                          <span
+                            className={`text-[11px] font-medium ${
+                              isIncome ? 'text-emerald-400' : 'text-[#8E929B]'
+                            }`}
+                          >
+                            {isIncome ? 'Pemasukan' : 'Pengeluaran'}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4 text-right">
+                          <div className="flex items-center justify-end space-x-2 opacity-60 group-hover:opacity-100 transition-opacity">
+                            <button
+                              onClick={() => handleOpenEdit(cat)}
+                              className="text-[#8E929B] hover:text-[#F4F4F6] transition-colors p-1"
+                              title="Ubah"
+                              aria-label="Ubah Kategori"
+                            >
+                              <Pencil className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              onClick={() => setDeletingCategory(cat)}
+                              className="text-[#8E929B] hover:text-rose-400 transition-colors p-1"
+                              title="Hapus"
+                              aria-label="Hapus Kategori"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
         </main>
       </div>
 
@@ -284,7 +268,7 @@ export default function CategoriesPage() {
       <DeleteConfirmModal
         isOpen={Boolean(deletingCategory)}
         title="Hapus Kategori"
-        message="Apakah Anda yakin ingin menghapus kategori ini? Kategori tidak dapat dihapus jika masih digunakan oleh transaksi yang ada."
+        message="Kategori tidak dapat dihapus jika masih digunakan oleh transaksi di database."
         itemName={deletingCategory ? `${deletingCategory.name} (${deletingCategory.type === 'income' ? 'Pemasukan' : 'Pengeluaran'})` : ''}
         onClose={() => setDeletingCategory(null)}
         onConfirm={handleDeleteConfirm}

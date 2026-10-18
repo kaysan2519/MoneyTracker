@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { AlertTriangle, Loader2 } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 
 interface DeleteConfirmModalProps {
   isOpen: boolean;
@@ -25,39 +25,30 @@ export default function DeleteConfirmModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fadeIn">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-[2px]">
       <div 
-        className="w-full max-w-md rounded-2xl bg-[#111726] border border-[#1e293b] shadow-2xl p-6"
+        className="w-full max-w-sm rounded-lg bg-[#121316] border border-[#23262D] shadow-xl p-5"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center space-x-3.5 mb-4">
-          <div className="p-3 rounded-xl bg-rose-500/10 text-rose-400 border border-rose-500/20">
-            <AlertTriangle className="w-6 h-6" />
-          </div>
-          <div>
-            <h3 className="text-lg font-bold text-white">{title}</h3>
-            <p className="text-xs text-slate-400">Tindakan ini tidak dapat dibatalkan</p>
-          </div>
-        </div>
-
-        <p className="text-sm text-slate-300 leading-relaxed mb-3">
+        <h3 className="text-sm font-semibold text-[#F4F4F6] mb-1.5">{title}</h3>
+        <p className="text-xs text-[#8E929B] leading-relaxed mb-3">
           {message}
         </p>
 
         {itemName && (
-          <div className="p-3 rounded-xl bg-[#090d16] border border-[#1e293b] mb-6">
-            <p className="text-xs font-semibold text-slate-200 truncate">
+          <div className="p-2.5 rounded bg-[#0C0D0E] border border-[#1C1E23] mb-4">
+            <p className="text-xs font-medium text-[#D1D3D8] truncate">
               {itemName}
             </p>
           </div>
         )}
 
-        <div className="flex items-center justify-end space-x-3">
+        <div className="flex items-center justify-end space-x-2">
           <button
             type="button"
             onClick={onClose}
             disabled={loading}
-            className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-sm font-semibold transition-colors disabled:opacity-50"
+            className="px-3 py-1.5 rounded-md text-xs font-medium text-[#8E929B] hover:text-[#F4F4F6] hover:bg-[#181A1E] transition-colors"
           >
             Batal
           </button>
@@ -65,9 +56,9 @@ export default function DeleteConfirmModal({
             type="button"
             onClick={onConfirm}
             disabled={loading}
-            className="inline-flex items-center px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-sm font-semibold shadow-lg shadow-rose-600/20 transition-all duration-200 active:scale-95 disabled:opacity-50"
+            className="inline-flex items-center px-3.5 py-1.5 rounded-md bg-rose-600 hover:bg-rose-500 text-white text-xs font-medium transition-colors disabled:opacity-50"
           >
-            {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+            {loading && <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />}
             Hapus
           </button>
         </div>
