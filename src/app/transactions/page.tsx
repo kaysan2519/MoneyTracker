@@ -9,7 +9,7 @@ import DeleteConfirmModal from '@/components/DeleteConfirmModal';
 import DbStatusBanner from '@/components/DbStatusBanner';
 import { Transaction, Category } from '@/types';
 import { formatRupiah } from '@/lib/utils';
-import { ChevronLeft, ChevronRight, Download, Plus } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Download, Plus, Check } from 'lucide-react';
 
 export default function TransactionsPage() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -37,6 +37,7 @@ export default function TransactionsPage() {
   const [editingTx, setEditingTx] = useState<Transaction | null>(null);
   const [deletingTx, setDeletingTx] = useState<Transaction | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   const checkDbHealth = useCallback(async () => {
     try {
@@ -105,6 +106,28 @@ export default function TransactionsPage() {
     fetchTransactions();
   }, [fetchTransactions]);
 
+  // Global Keyboard Shortcut: 'N'
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.key === 'n' || e.key === 'N') && !isModalOpen && !deletingTx) {
+        const target = e.target as HTMLElement;
+        if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT') {
+          return;
+        }
+        e.preventDefault();
+        setEditingTx(null);
+        setIsModalOpen(true);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isModalOpen, deletingTx]);
+
+  const showToast = (msg: string) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(null), 3000);
+  };
+
   const handleRefresh = async () => {
     setRefreshing(true);
     await fetchTransactions();
@@ -130,6 +153,7 @@ export default function TransactionsPage() {
       const data = await res.json();
       if (data.success) {
         setDeletingTx(null);
+        showToast('Transaksi berhasil dihapus');
         await fetchTransactions();
       } else {
         alert(data.message || 'Gagal menghapus transaksi.');
@@ -166,6 +190,7 @@ export default function TransactionsPage() {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    showToast('File CSV berhasil diunduh');
   };
 
   const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
@@ -217,7 +242,7 @@ export default function TransactionsPage() {
               </button>
               <button
                 onClick={handleOpenAdd}
-                className="inline-flex items-center px-3 py-1.5 rounded-md bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-medium transition-colors"
+                className="inline-flex items-center px-3 py-1.5 rounded-md bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-medium transition-colors shadow-sm"
               >
                 <Plus className="w-3.5 h-3.5 mr-1" />
                 Tambah Transaksi
@@ -226,7 +251,7 @@ export default function TransactionsPage() {
           </div>
 
           {/* Filter Bar (Date range & Sort) */}
-          <div className="p-3 rounded-lg bg-[#121316] border border-[#1C1E23] grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+          <div className="p-3.5 rounded-lg bg-[#121316] border border-[#1C1E23] grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
             <div>
               <label className="block text-[11px] font-medium text-[#8E929B] mb-1">
                 Dari Tanggal
@@ -277,7 +302,7 @@ export default function TransactionsPage() {
             </div>
           </div>
 
-          {/* Table */}
+          {/* Table with integrated search and quick filters */}
           <TransactionTable
             transactions={transactions}
             categories={categories}
@@ -337,7 +362,10 @@ export default function TransactionsPage() {
       <TransactionModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        onSuccess={fetchTransactions}
+        onSuccess={() => {
+          fetchTransactions();
+          showToast('Transaksi berhasil disimpan!');
+        }}
         transactionToEdit={editingTx}
         categories={categories}
       />
@@ -351,6 +379,14 @@ export default function TransactionsPage() {
         onConfirm={handleDeleteConfirm}
         loading={isDeleting}
       />
+
+      {/* Floating subtle toast */}
+      {toastMessage && (
+        <div className="fixed bottom-5 right-5 z-50 bg-[#16181E] border border-[#2B2F3B] text-[#ECECEE] px-4 py-2.5 rounded-lg shadow-xl text-xs font-medium flex items-center gap-2 animate-fadeIn">
+          <Check className="w-4 h-4 text-emerald-400" />
+          <span>{toastMessage}</span>
+        </div>
+      )}
     </div>
   );
 }

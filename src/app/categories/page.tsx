@@ -7,7 +7,7 @@ import CategoryModal from '@/components/CategoryModal';
 import DeleteConfirmModal from '@/components/DeleteConfirmModal';
 import DbStatusBanner from '@/components/DbStatusBanner';
 import { Category } from '@/types';
-import { Plus, Pencil, Trash2 } from 'lucide-react';
+import { Plus, Pencil, Trash2, Check } from 'lucide-react';
 
 export default function CategoriesPage() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -24,6 +24,7 @@ export default function CategoriesPage() {
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [deletingCategory, setDeletingCategory] = useState<Category | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   const checkDbHealth = useCallback(async () => {
     try {
@@ -62,6 +63,11 @@ export default function CategoriesPage() {
     fetchCategories();
   }, [checkDbHealth, fetchCategories]);
 
+  const showToast = (msg: string) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(null), 3000);
+  };
+
   const handleRefresh = async () => {
     setRefreshing(true);
     await fetchCategories();
@@ -87,6 +93,7 @@ export default function CategoriesPage() {
       const data = await res.json();
       if (data.success) {
         setDeletingCategory(null);
+        showToast('Kategori berhasil dihapus');
         await fetchCategories();
       } else {
         alert(data.message || 'Kategori ini tidak dapat dihapus karena masih digunakan oleh transaksi.');
@@ -165,7 +172,7 @@ export default function CategoriesPage() {
 
             <button
               onClick={handleOpenAdd}
-              className="inline-flex items-center px-3 py-1.5 rounded-md bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-medium transition-colors self-start sm:self-auto"
+              className="inline-flex items-center px-3 py-1.5 rounded-md bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-medium transition-colors self-start sm:self-auto shadow-sm"
             >
               <Plus className="w-3.5 h-3.5 mr-1" />
               Tambah Kategori
@@ -261,7 +268,10 @@ export default function CategoriesPage() {
       <CategoryModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        onSuccess={fetchCategories}
+        onSuccess={() => {
+          fetchCategories();
+          showToast('Kategori berhasil disimpan!');
+        }}
         categoryToEdit={editingCategory}
       />
 
@@ -274,6 +284,14 @@ export default function CategoriesPage() {
         onConfirm={handleDeleteConfirm}
         loading={isDeleting}
       />
+
+      {/* Floating subtle toast */}
+      {toastMessage && (
+        <div className="fixed bottom-5 right-5 z-50 bg-[#16181E] border border-[#2B2F3B] text-[#ECECEE] px-4 py-2.5 rounded-lg shadow-xl text-xs font-medium flex items-center gap-2 animate-fadeIn">
+          <Check className="w-4 h-4 text-emerald-400" />
+          <span>{toastMessage}</span>
+        </div>
+      )}
     </div>
   );
 }

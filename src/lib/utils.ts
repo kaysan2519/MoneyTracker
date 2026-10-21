@@ -23,6 +23,35 @@ export function formatRupiah(amount: number | string | null | undefined): string
 }
 
 /**
+ * Konversi angka numerik ke teks terbilang Bahasa Indonesia
+ * Contoh: 1500000 -> "Satu Juta Lima Ratus Ribu Rupiah"
+ */
+export function angkaTerbilang(angka: number | string | null | undefined): string {
+  if (angka === null || angka === undefined || angka === '') return '';
+  const num = Math.floor(Math.abs(typeof angka === 'string' ? parseFloat(angka) : angka));
+  if (isNaN(num) || num === 0) return '';
+
+  const huruf = [
+    '', 'Satu', 'Dua', 'Tiga', 'Empat', 'Lima', 
+    'Enam', 'Tujuh', 'Delapan', 'Sembilan', 'Sepuluh', 'Sebelas'
+  ];
+
+  function bilangan(n: number): string {
+    if (n < 12) return huruf[n];
+    if (n < 20) return bilangan(n - 10) + ' Belas';
+    if (n < 100) return huruf[Math.floor(n / 10)] + ' Puluh ' + bilangan(n % 10);
+    if (n < 200) return 'Seratus ' + bilangan(n - 100);
+    if (n < 1000) return huruf[Math.floor(n / 100)] + ' Ratus ' + bilangan(n % 100);
+    if (n < 2000) return 'Seribu ' + bilangan(n - 1000);
+    if (n < 1000000) return bilangan(Math.floor(n / 1000)) + ' Ribu ' + bilangan(n % 1000);
+    if (n < 1000000000) return bilangan(Math.floor(n / 1000000)) + ' Juta ' + bilangan(n % 1000000);
+    return bilangan(Math.floor(n / 1000000000)) + ' Miliar ' + bilangan(n % 1000000000);
+  }
+
+  return bilangan(num).replace(/\s+/g, ' ').trim() + ' Rupiah';
+}
+
+/**
  * Format tanggal YYYY-MM-DD ke format tampilan Indonesia
  * Contoh: "2026-10-18" -> "18 Okt 2026"
  */

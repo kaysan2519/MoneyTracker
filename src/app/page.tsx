@@ -9,7 +9,7 @@ import TransactionTable from '@/components/TransactionTable';
 import TransactionModal from '@/components/TransactionModal';
 import DeleteConfirmModal from '@/components/DeleteConfirmModal';
 import DbStatusBanner from '@/components/DbStatusBanner';
-import { ArrowRight, Plus } from 'lucide-react';
+import { ArrowRight, Plus, Check } from 'lucide-react';
 import { DashboardSummary, Transaction, Category } from '@/types';
 import { formatRupiah } from '@/lib/utils';
 
@@ -31,12 +31,14 @@ export default function DashboardPage() {
   });
 
   const [categories, setCategories] = useState<Category[]>([]);
+  const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
 
   // Modal State
   const [isTxModalOpen, setIsTxModalOpen] = useState(false);
   const [editingTx, setEditingTx] = useState<Transaction | null>(null);
   const [deletingTx, setDeletingTx] = useState<Transaction | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   const checkDbHealth = useCallback(async () => {
     try {
@@ -86,6 +88,28 @@ export default function DashboardPage() {
     loadData();
   }, [loadData]);
 
+  // Global Keyboard Shortcut: 'N' to open add modal
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.key === 'n' || e.key === 'N') && !isTxModalOpen && !deletingTx) {
+        const target = e.target as HTMLElement;
+        if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT') {
+          return;
+        }
+        e.preventDefault();
+        setEditingTx(null);
+        setIsTxModalOpen(true);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isTxModalOpen, deletingTx]);
+
+  const showToast = (msg: string) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(null), 3000);
+  };
+
   const handleRefresh = async () => {
     setRefreshing(true);
     await loadData();
@@ -111,6 +135,7 @@ export default function DashboardPage() {
       const data = await res.json();
       if (data.success) {
         setDeletingTx(null);
+        showToast('Transaksi berhasil dihapus');
         await loadData();
       } else {
         alert(data.message || 'Gagal menghapus transaksi.');
@@ -121,6 +146,16 @@ export default function DashboardPage() {
       setIsDeleting(false);
     }
   };
+
+  // Filter recent transactions if category drilldown is active
+  const filteredRecentTransactions = selectedCategoryId
+    ? summary.recentTransactions.filter((tx) => tx.category_id === selectedCategoryId)
+    : summary.recentTransactions;
+
+  // Flow ratio calculation
+  const expenseRatio = summary.totalIncome > 0
+    ? (summary.totalExpense / summary.totalIncome) * 100
+    : 0;
 
   return (
     <div className="min-h-screen bg-[#0C0D0E] text-[#F4F4F6] flex">
@@ -151,35 +186,61 @@ export default function DashboardPage() {
           <div className="p-6 rounded-lg bg-[#121316] border border-[#1C1E23]">
             <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-4 pb-6 border-b border-[#1C1E23]">
               <div>
-                <p className="text-xs font-medium text-[#8E929B] tracking-wide mb-1">
+                <span className="text-xs font-medium text-[#8E929B] tracking-wide block mb-1">
                   Saldo Bersih
-                </p>
-                {loading ? (
-                  <div className="h-9 w-48 bg-[#1C1E23] rounded animate-pulse" />
-                ) : (
-                  <h2
-                    className={`text-3xl sm:text-4xl font-semibold tracking-tight tabular-nums ${
-                      summary.netBalance >= 0 ? 'text-[#F4F4F6]' : 'text-rose-400'
-                    }`}
-                  >
-                    {formatRupiah(summary.netBalance)}
-                  </h2>
-                )}
+                </span>
+                <div className="flex items-baseline gap-3">
+                  {loading ? (
+                    <div className="h-9 w-48 bg-[#1C1E23] rounded animate-pulse" />
+                  ) : (
+                    <h2
+                      className={`text-3xl sm:text-4xl font-semibold tracking-tight tabular-nums ${
+                        summary.netBalance >= 0 ? 'text-[#F4F4F6]' : 'text-rose-400'
+                      }`}
+                    >
+                      {formatRupiah(summary.netBalance)}
+                    </h2>
+                  )}
+
+                  {!loading && (
+                    <span
+                      className={`text-[11px] font-medium px-2 py-0.5 rounded border ${
+                        summary.netBalance >= 0
+                          ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20'
+                          : 'text-rose-400 bg-rose-500/10 border-rose-500/20'
+                      }`}
+                    >
+                      {summary.netBalance >= 0 ? 'Surplus' : 'Defisit'}
+                    </span>
+                  )}
+                </div>
               </div>
 
-              <button
-                onClick={handleOpenAdd}
-                className="self-start sm:self-auto inline-flex items-center px-3 py-1.5 rounded-md bg-[#181A1E] hover:bg-[#23262D] text-[#F4F4F6] text-xs font-medium border border-[#23262D] transition-colors"
-              >
-                <Plus className="w-3.5 h-3.5 mr-1 text-[#8E929B]" />
-                Catat Transaksi
-              </button>
+              {/* Flow Ratio Mini Bar (UX Wah) */}
+              <div className="w-full sm:w-64 space-y-1.5 self-start sm:self-auto">
+                <div className="flex justify-between text-[11px] text-[#8E929B] tabular-nums">
+                  <span>Rasio Pengeluaran</span>
+                  <span>{expenseRatio.toFixed(1)}%</span>
+                </div>
+                <div className="h-1.5 w-full bg-[#1C1E23] rounded-full overflow-hidden flex">
+                  <div
+                    className="bg-emerald-500 h-full transition-all duration-500"
+                    style={{ width: `${Math.max(0, 100 - expenseRatio)}%` }}
+                    title="Pemasukan Tersisa"
+                  />
+                  <div
+                    className="bg-rose-400 h-full transition-all duration-500"
+                    style={{ width: `${Math.min(100, expenseRatio)}%` }}
+                    title="Pengeluaran"
+                  />
+                </div>
+              </div>
             </div>
 
             {/* Sub Metrics Row */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 pt-5">
               <div>
-                <p className="text-xs text-[#8E929B] mb-0.5">Total Pemasukan</p>
+                <span className="text-xs text-[#8E929B] block mb-0.5">Total Pemasukan</span>
                 {loading ? (
                   <div className="h-6 w-28 bg-[#1C1E23] rounded animate-pulse" />
                 ) : (
@@ -190,7 +251,7 @@ export default function DashboardPage() {
               </div>
 
               <div>
-                <p className="text-xs text-[#8E929B] mb-0.5">Total Pengeluaran</p>
+                <span className="text-xs text-[#8E929B] block mb-0.5">Total Pengeluaran</span>
                 {loading ? (
                   <div className="h-6 w-28 bg-[#1C1E23] rounded animate-pulse" />
                 ) : (
@@ -201,7 +262,7 @@ export default function DashboardPage() {
               </div>
 
               <div>
-                <p className="text-xs text-[#8E929B] mb-0.5">Volume Transaksi</p>
+                <span className="text-xs text-[#8E929B] block mb-0.5">Volume Transaksi</span>
                 {loading ? (
                   <div className="h-6 w-20 bg-[#1C1E23] rounded animate-pulse" />
                 ) : (
@@ -214,22 +275,31 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* Breakdown Section */}
+          {/* Interactive Category Breakdown */}
           <CategoryBreakdown
             data={summary.categoryBreakdown}
             totalExpense={summary.totalExpense}
             loading={loading}
+            selectedCategoryId={selectedCategoryId}
+            onSelectCategory={(catId) => setSelectedCategoryId(catId)}
           />
 
           {/* Recent Transactions Section */}
           <div className="space-y-3 pt-2">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-sm font-semibold text-[#F4F4F6]">
-                  Transaksi Terbaru
+                <h3 className="text-sm font-semibold text-[#F4F4F6] flex items-center gap-2">
+                  <span>Transaksi Terbaru</span>
+                  {selectedCategoryId && (
+                    <span className="text-xs font-normal text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
+                      Disaring berdasarkan kategori
+                    </span>
+                  )}
                 </h3>
                 <p className="text-xs text-[#8E929B]">
-                  5 catatan transaksi terakhir
+                  {selectedCategoryId
+                    ? 'Menampilkan transaksi untuk kategori terpilih'
+                    : '5 catatan transaksi terakhir'}
                 </p>
               </div>
 
@@ -243,7 +313,7 @@ export default function DashboardPage() {
             </div>
 
             <TransactionTable
-              transactions={summary.recentTransactions}
+              transactions={filteredRecentTransactions}
               categories={categories}
               loading={loading}
               compact={true}
@@ -258,7 +328,10 @@ export default function DashboardPage() {
       <TransactionModal
         isOpen={isTxModalOpen}
         onClose={() => setIsTxModalOpen(false)}
-        onSuccess={loadData}
+        onSuccess={() => {
+          loadData();
+          showToast('Transaksi berhasil dicatat!');
+        }}
         transactionToEdit={editingTx}
         categories={categories}
       />
@@ -272,6 +345,14 @@ export default function DashboardPage() {
         onConfirm={handleDeleteConfirm}
         loading={isDeleting}
       />
+
+      {/* Floating subtle toast */}
+      {toastMessage && (
+        <div className="fixed bottom-5 right-5 z-50 bg-[#16181E] border border-[#2B2F3B] text-[#ECECEE] px-4 py-2.5 rounded-lg shadow-xl text-xs font-medium flex items-center gap-2 animate-fadeIn">
+          <Check className="w-4 h-4 text-emerald-400" />
+          <span>{toastMessage}</span>
+        </div>
+      )}
     </div>
   );
 }

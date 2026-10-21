@@ -27,7 +27,7 @@ export default function Header({
         {/* Mobile Menu Button */}
         <button
           onClick={onOpenSidebar}
-          className="p-1.5 text-[#8E929B] rounded hover:text-white hover:bg-[#181A1E] lg:hidden"
+          className="p-1.5 text-[#8E929B] rounded hover:text-white hover:bg-[#181A1E] lg:hidden transition-colors"
           aria-label="Buka Menu Navigasi"
         >
           <Menu className="w-5 h-5" />
@@ -45,7 +45,14 @@ export default function Header({
       </div>
 
       {/* Right Actions */}
-      <div className="flex items-center space-x-2.5">
+      <div className="flex items-center space-x-3">
+        {/* Keyboard shortcut hint for desktop */}
+        {onOpenAddTransaction && (
+          <div className="hidden lg:flex items-center gap-1.5 text-[11px] text-[#5C606A]">
+            Tekan <kbd className="px-1.5 py-0.5 rounded bg-[#181A20] border border-[#272A33] text-[#A1A5B0] font-mono font-medium">N</kbd> untuk catat cepat
+          </div>
+        )}
+
         {onRefresh && (
           <button
             onClick={onRefresh}

@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Transaction, Category, TransactionType } from '@/types';
-import { formatRupiah, toInputDate } from '@/lib/utils';
+import { formatRupiah, toInputDate, angkaTerbilang } from '@/lib/utils';
 import { X, Loader2 } from 'lucide-react';
 
 interface TransactionModalProps {
@@ -32,6 +32,7 @@ export default function TransactionModal({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const amountInputRef = useRef<HTMLInputElement>(null);
   const filteredCategories = categories.filter((cat) => cat.type === type);
 
   useEffect(() => {
@@ -53,8 +54,24 @@ export default function TransactionModal({
         const defaultCat = categories.find((c) => c.type === 'expense');
         setCategoryId(defaultCat ? String(defaultCat.id) : '');
       }
+
+      // Auto-focus amount on open
+      setTimeout(() => {
+        amountInputRef.current?.focus();
+      }, 50);
     }
   }, [isOpen, transactionToEdit, categories]);
+
+  // Handle ESC key to close modal
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isOpen) {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
 
   const handleTypeChange = (newType: TransactionType) => {
     setType(newType);
@@ -66,19 +83,25 @@ export default function TransactionModal({
     }
   };
 
+  const handleQuickAdd = (increment: number) => {
+    const current = parseFloat(amount) || 0;
+    const nextVal = current + increment;
+    setAmount(String(nextVal));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (loading) return; // Prevent double submit
+    if (loading) return;
     setError(null);
-
-    if (!title.trim()) {
-      setError('Nama transaksi wajib diisi.');
-      return;
-    }
 
     const numAmount = parseFloat(amount);
     if (isNaN(numAmount) || numAmount <= 0) {
       setError('Nominal harus berupa angka lebih dari 0.');
+      return;
+    }
+
+    if (!title.trim()) {
+      setError('Nama transaksi wajib diisi.');
       return;
     }
 
@@ -133,10 +156,12 @@ export default function TransactionModal({
 
   if (!isOpen) return null;
 
+  const terbilangText = angkaTerbilang(amount);
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-[2px]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fadeIn">
       <div 
-        className="w-full max-w-md rounded-lg bg-[#121316] border border-[#23262D] shadow-xl overflow-hidden"
+        className="w-full max-w-md rounded-lg bg-[#121316] border border-[#23262D] shadow-2xl overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -148,7 +173,7 @@ export default function TransactionModal({
           </div>
           <button
             onClick={onClose}
-            className="p-1 text-[#8E929B] rounded hover:text-white hover:bg-[#181A1E]"
+            className="p-1 text-[#8E929B] rounded hover:text-white hover:bg-[#181A1E] transition-colors"
             aria-label="Tutup"
           >
             <X className="w-4 h-4" />
@@ -189,15 +214,15 @@ export default function TransactionModal({
             </button>
           </div>
 
-          {/* Nominal Hero Input */}
+          {/* Nominal Hero Input with Live Terbilang */}
           <div>
             <div className="flex items-center justify-between mb-1">
               <label className="text-xs font-medium text-[#8E929B]">
                 Nominal
               </label>
-              {amount && !isNaN(parseFloat(amount)) && parseFloat(amount) > 0 && (
-                <span className="text-xs text-[#8E929B] tabular-nums">
-                  {formatRupiah(parseFloat(amount))}
+              {terbilangText && (
+                <span className="text-[11px] text-emerald-400 font-medium truncate max-w-[240px]" title={terbilangText}>
+                  {terbilangText}
                 </span>
               )}
             </div>
@@ -206,6 +231,7 @@ export default function TransactionModal({
                 Rp
               </span>
               <input
+                ref={amountInputRef}
                 type="number"
                 step="any"
                 min="1"
@@ -213,8 +239,41 @@ export default function TransactionModal({
                 placeholder="0"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
-                className="w-full pl-9 pr-3 py-2 rounded-md bg-[#0C0D0E] border border-[#23262D] text-sm text-[#F4F4F6] font-medium tabular-nums focus:border-[#3E424D] transition-colors"
+                className="w-full pl-9 pr-3 py-2 rounded-md bg-[#0C0D0E] border border-[#23262D] text-sm text-[#F4F4F6] font-semibold tabular-nums focus:border-emerald-500 transition-colors"
               />
+            </div>
+
+            {/* Quick Amount Chips */}
+            <div className="flex items-center gap-1.5 mt-2 text-[11px]">
+              <span className="text-[#5C606A] text-[10px]">Cepat:</span>
+              <button
+                type="button"
+                onClick={() => handleQuickAdd(50000)}
+                className="px-2 py-0.5 rounded bg-[#181A1E] text-[#8E929B] hover:text-[#F4F4F6] hover:bg-[#23262D] transition-colors"
+              >
+                +50rb
+              </button>
+              <button
+                type="button"
+                onClick={() => handleQuickAdd(100000)}
+                className="px-2 py-0.5 rounded bg-[#181A1E] text-[#8E929B] hover:text-[#F4F4F6] hover:bg-[#23262D] transition-colors"
+              >
+                +100rb
+              </button>
+              <button
+                type="button"
+                onClick={() => handleQuickAdd(500000)}
+                className="px-2 py-0.5 rounded bg-[#181A1E] text-[#8E929B] hover:text-[#F4F4F6] hover:bg-[#23262D] transition-colors"
+              >
+                +500rb
+              </button>
+              <button
+                type="button"
+                onClick={() => handleQuickAdd(1000000)}
+                className="px-2 py-0.5 rounded bg-[#181A1E] text-[#8E929B] hover:text-[#F4F4F6] hover:bg-[#23262D] transition-colors"
+              >
+                +1jt
+              </button>
             </div>
           </div>
 
@@ -227,10 +286,10 @@ export default function TransactionModal({
               type="text"
               required
               maxLength={150}
-              placeholder="Contoh: Belanja, Gaji Pokok"
+              placeholder="Contoh: Belanja Bulanan, Gaji Pokok"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              className="w-full px-3 py-2 rounded-md bg-[#0C0D0E] border border-[#23262D] text-xs text-[#F4F4F6] placeholder-[#5C606A] focus:border-[#3E424D] transition-colors"
+              className="w-full px-3 py-2 rounded-md bg-[#0C0D0E] border border-[#23262D] text-xs text-[#F4F4F6] placeholder-[#5C606A] focus:border-emerald-500 transition-colors"
             />
           </div>
 
@@ -244,7 +303,7 @@ export default function TransactionModal({
                 required
                 value={categoryId}
                 onChange={(e) => setCategoryId(e.target.value)}
-                className="w-full px-2.5 py-2 rounded-md bg-[#0C0D0E] border border-[#23262D] text-xs text-[#F4F4F6] focus:border-[#3E424D] transition-colors"
+                className="w-full px-2.5 py-2 rounded-md bg-[#0C0D0E] border border-[#23262D] text-xs text-[#F4F4F6] focus:border-emerald-500 transition-colors cursor-pointer"
               >
                 <option value="" disabled>Pilih Kategori</option>
                 {filteredCategories.map((cat) => (
@@ -264,7 +323,7 @@ export default function TransactionModal({
                 required
                 value={transactionDate}
                 onChange={(e) => setTransactionDate(e.target.value)}
-                className="w-full px-2.5 py-2 rounded-md bg-[#0C0D0E] border border-[#23262D] text-xs text-[#F4F4F6] focus:border-[#3E424D] transition-colors"
+                className="w-full px-2.5 py-2 rounded-md bg-[#0C0D0E] border border-[#23262D] text-xs text-[#F4F4F6] focus:border-emerald-500 transition-colors"
               />
             </div>
           </div>
@@ -279,7 +338,7 @@ export default function TransactionModal({
               placeholder="Keterangan tambahan..."
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              className="w-full px-3 py-1.5 rounded-md bg-[#0C0D0E] border border-[#23262D] text-xs text-[#F4F4F6] placeholder-[#5C606A] focus:border-[#3E424D] transition-colors resize-none"
+              className="w-full px-3 py-1.5 rounded-md bg-[#0C0D0E] border border-[#23262D] text-xs text-[#F4F4F6] placeholder-[#5C606A] focus:border-emerald-500 transition-colors resize-none"
             />
           </div>
 
@@ -291,15 +350,15 @@ export default function TransactionModal({
               disabled={loading}
               className="px-3 py-1.5 rounded-md text-xs font-medium text-[#8E929B] hover:text-[#F4F4F6] hover:bg-[#181A1E] transition-colors"
             >
-              Batal
+              Batal (ESC)
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="inline-flex items-center px-4 py-1.5 rounded-md bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-medium transition-colors disabled:opacity-50"
+              className="inline-flex items-center px-4 py-1.5 rounded-md bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-medium transition-colors disabled:opacity-50 shadow-sm"
             >
               {loading && <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />}
-              {isEditing ? 'Simpan Perubahan' : 'Catat'}
+              {isEditing ? 'Simpan Perubahan' : 'Catat Transaksi'}
             </button>
           </div>
         </form>
